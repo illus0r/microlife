@@ -17,7 +17,7 @@ let charge = 0.5
 
 // Cell props
 // - reproduction speed
-let reproductionTime = 0.5
+let reproductionTime = 50
 // - lifespan
 let lifespan = 0.5
 // - quantity of strings
@@ -40,12 +40,12 @@ let stringsQuantity = 0.5
 
 
 function createGravityFieldLocal() {
-	let gravityFieldLocalSize = 100
+	let gravityFieldLocalSize = 50
 	gravityFieldLocal = createGraphics(gravityFieldLocalSize, gravityFieldLocalSize)
 	gravityFieldLocal.noStroke()
 	gravityFieldLocal.background('white')
 	for(let i = gravityFieldLocal.width; i > 0; i--){
-		gravityFieldLocal.fill(200 + 56 * i * 2 / gravityFieldLocal.width)
+		gravityFieldLocal.fill(100 + 156 * i * 2 / gravityFieldLocal.width)
 		gravityFieldLocal.circle(
 			gravityFieldLocal.width / 2,
 			gravityFieldLocal.height / 2,
@@ -57,83 +57,102 @@ function createGravityFieldLocal() {
 
 function Cell(properties) {
 	let p = properties
-	// TODO unpack props
-	this.position = [p.x, p.y]
+	this.pos = createVector(p.x, p.y)
+
 	this.timer = 0
-	this.getRadius = () => this.timer < 100 ? 10 + this.timer * 0.1 : 10
-	this.getScreenX = (x) => int(x * width  / fieldResolution[0])
-	this.getScreenY = (y) => int(y * height / fieldResolution[1])
-	this.getFieldX = (x) => int(x * fieldResolution[0] / width)
-	this.getFieldY = (y) => int(y * fieldResolution[1] / height)
+	this.mass = 10
 	this.velocity = createVector(random(-1, 1), random(-1, 1))
 
-	this.getGradient = field => {
-		let fieldX = this.getFieldX(this.position[0])
-		let fieldY = this.getFieldY(this.position[1])
-		let dx = field.get(fieldX - 2, fieldY)[0] - field.get(fieldX + 1, fieldY)[0]
-		let dy = field.get(fieldX, fieldY - 2)[0] - field.get(fieldX, fieldY + 1)[0]
+	this.getRadius = () => this.timer < 100 ? 10 + this.timer * 0.1 : 10
+
+	this.getScreenX = (x) => int(x * width  / fieldResolution[0])
+
+	this.getScreenY = (y) => int(y * height / fieldResolution[1])
+
+	this.getFieldX = (x) => int(x * fieldResolution[0] / width)
+
+	this.getFieldY = (y) => int(y * fieldResolution[1] / height)
+
+	this.getGradient = () => {
+		if(
+			this.pos.x < 1 ||
+			this.pos.x > width - 2 ||
+			this.pos.y < 1 ||
+			this.pos.y > height - 2
+			) {
+			return [0, 0]
+		}
+		let fieldX = this.pos.x
+		let fieldY = this.pos.y
+		let dx = get(fieldX - 1, fieldY)[0] - get(fieldX + 1, fieldY)[0]
+		let dy = get(fieldX, fieldY - 1)[0] - get(fieldX, fieldY + 1)[0]
 		return [dx, dy]
 	}
 
 	this.draw = function() {
-		push()
-		fill(0)
-		noStroke()
-		let radius = this.getRadius()
-		circle(this.position[0], this.position[1], radius)
-		//translate(-50, -50)
-		//blendMode(MULTIPLY)
-		//image(gravityFieldLocal, this.position[0], this.position[1])
-		//blendMode(BLEND)
-		pop()
+		circle(this.pos.x, this.pos.y, 4)
+	}
+
+	this.drawFields = function() {
 		push()
 		translate(-gravityFieldLocal.width / 2, -gravityFieldLocal.height / 2)
 		image(gravityFieldLocal,
-			this.position[0],
-			this.position[1],
+			this.pos.x,
+			this.pos.y,
 			gravityFieldLocal.width,
 			gravityFieldLocal.height,
 		)
-		//console.log(
-			//this.getFieldX(this.position[0]),
-			//this.getFieldY(this.position[1]),
-		//)
 		pop()
 	}
 
+	// UPDATE
+	//
 	this.update = function() {
-		// Draw gravity field
-		//let radius = this.getRadius()
-		//gravityField.circle(
-			//this.getFieldX(this.position[0]),
-			//this.getFieldY(this.position[1]),
-			//this.getFieldX(radius)
-		//)
-		//if(random() < frameRate() / 100) {
-			//gravityField.push()
-			//gravityField.translate(-gravityFieldLocal.width / 2, -gravityFieldLocal.height / 2)
-			//gravityField.image(gravityFieldLocal,
-				//this.getFieldX(this.position[0]),
-				//this.getFieldY(this.position[1]),
-				//gravityFieldLocal.width,
-				//gravityFieldLocal.height,
-			//)
-			////console.log(
-				////this.getFieldX(this.position[0]),
-				////this.getFieldY(this.position[1]),
-			////)
-			//gravityField.pop()
-		//}
-
 		this.timer++
-		let [dx, dy] = this.getGradient(gravityField)
+		if (this.timer > reproductionTime && random() < 0.1) {
+			this.reproduce()
+		}
+		this.applyForce()
+		this.move()
+	}
+
+	this.reproduce = function() {
+		cells.push(new Cell({
+			x: this.pos.x,
+			y: this.pos.y,
+		}))
+		this.timer = 0
+	}
+
+	this.applyForce = function() {
+		let [dx, dy] = this.getGradient()
 		this.forceGravity = createVector(dx, dy)
-		let mass = 100 //FIXME
-		let friction = 0.1
 		this.velocity.mult(1 - friction)
-		this.velocity.add(this.forceGravity.copy().div(mass).mult(-1))
-		this.position[0] += this.velocity.x
-		this.position[1] += this.velocity.y
+		this.velocity.add(this.forceGravity.copy().div(this.mass).mult(-1))
+	}
+
+	this.move = function() {
+		this.pos.x += this.velocity.x
+		this.pos.y += this.velocity.y
+
+		// reflection
+		if(this.pos.x < 0) {
+			this.pos.x = 0
+			this.velocity.x = - this.velocity.x
+		}
+		if(this.pos.x > width - 1) {
+			this.pos.x = width - 1
+			this.velocity.x = - this.velocity.x
+		}
+		if(this.pos.y < 0) {
+			this.pos.y = 0
+			this.velocity.y = - this.velocity.y
+		}
+		if(this.pos.y > height - 1) {
+			this.pos.y = height - 1
+			this.velocity.y = - this.velocity.y
+		}
+		
 	}
 }
 
@@ -150,30 +169,30 @@ function setup() {
 
 	createGravityFieldLocal()
 
-	for(let i = 0; i < 100; i++){
+	for(let i = 0; i < 10; i++){
 		cells.push(new Cell({
-			x: random(width/2 - 50, width/2 + 50),
-			y: random(height/2 - 50, height/2 + 50),
+			//x: random(width),
+			//y: random(height),
+			x: random(width/2 - 10, width/2 + 10),
+			y: random(height/2 - 10, height/2 + 10),
 		}))
 	}
 	
 }
 
 function draw() {
-	blendMode(BLEND)
-	//gravityField.blendMode(BLEND)
-	gravityField.background('white')
 	background('white')
 	blendMode(MULTIPLY)
-	//gravityField.blendMode(MULTIPLY)
+	cells.forEach(cell => {
+		cell.drawFields()
+	})
 
 	cells.forEach(cell => {
 		cell.update()
 	})
 
-	//gravityField.filter(BLUR, 50)
-	image(gravityField, 0, 0, width, height)
-	
+	blendMode(BLEND)
+	background('white')
 	cells.forEach(cell => {
 		cell.draw()
 	})
