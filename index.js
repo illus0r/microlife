@@ -1,8 +1,6 @@
 //console.log('hello')
 
 // Const
-// Force field resolution
-const fieldResolution = [64, 64]
 
 // Vars
 // вязкость
@@ -63,7 +61,7 @@ function Cell(properties) {
 	this.mass = 10
 	this.velocity = createVector(random(-1, 1), random(-1, 1))
 
-	this.getRadius = () => this.timer < 100 ? 10 + this.timer * 0.1 : 10
+	this.getRadius = () => 5 + this.timer / 20
 
 	this.getScreenX = (x) => int(x * width  / fieldResolution[0])
 
@@ -89,10 +87,8 @@ function Cell(properties) {
 		return [dx, dy]
 	}
 
-	this.draw = function() {
-		circle(this.pos.x, this.pos.y, 4)
-	}
-
+	// DRAW FIELD
+	//
 	this.drawFields = function() {
 		push()
 		translate(-gravityFieldLocal.width / 2, -gravityFieldLocal.height / 2)
@@ -103,6 +99,13 @@ function Cell(properties) {
 			gravityFieldLocal.height,
 		)
 		pop()
+	}
+
+	// DRAW
+	//
+	this.draw = function() {
+		let radius = this.getRadius()
+		circle(this.pos.x, this.pos.y, radius)
 	}
 
 	// UPDATE
@@ -162,10 +165,6 @@ let gravityFieldLocal
 
 function setup() {
 	createCanvas(512, 512)
-	gravityField = createGraphics(
-		fieldResolution[0],
-		fieldResolution[1]
-	)
 
 	createGravityFieldLocal()
 
