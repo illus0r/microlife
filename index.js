@@ -2,7 +2,7 @@
 
 // Vars
 // вязкость
-let friction = 0.8
+let friction = 1
 
 // amount of food
 let foodAmount = 0.5
@@ -78,6 +78,9 @@ function Cell(properties) {
 	this.direction = random(TAU)
 	this.repulsionFieldLocal = createFieldLocal(0, 50, 0.5)
 	this.attractionFieldLocal = createFieldLocal(1, 100, 0.5)
+	this.energy = 1
+	this.cellAttached
+	this.cellAttachedForce = createVector(0, 0)
 
 	this.getRadius = () => 10//5 + this.timer / 20
 
@@ -88,6 +91,8 @@ function Cell(properties) {
 	this.getFieldX = (x) => int(x * fieldResolution[0] / width)
 
 	this.getFieldY = (y) => int(y * fieldResolution[1] / height)
+
+	this.feed = () => this.energy += 1
 
 	this.getGradient = (channel) => {
 		if(
@@ -102,10 +107,6 @@ function Cell(properties) {
 		let fieldY = this.pos.y
 		let dx = get(fieldX - 1, fieldY)[channel] - get(fieldX + 1, fieldY)[channel]
 		let dy = get(fieldX, fieldY - 1)[channel] - get(fieldX, fieldY + 1)[channel]
-		//console.log(dx, dy)
-		//if(this.type == 'predator')
-			//console.log(get(fieldX - 1, fieldY))
-		//return createVector(1, 1)
 		return createVector(dx, dy)
 	}
 
@@ -137,28 +138,51 @@ function Cell(properties) {
 	//
 	this.draw = function() {
 		let radius = this.getRadius()
+		//push()
+		//translate(this.pos.x, this.pos.y)
+		//rotate(this.direction)
+		////ellipse(0, 0, radius, radius / 2)
+		//pop()
+
+		if(!this.cellAttached) return
 		push()
-		translate(this.pos.x, this.pos.y)
-		rotate(this.direction)
-		ellipse(0, 0, radius, radius / 2)
-		//stroke('white')
-		//let forceLine = this.force.mult(10)
-		//line(0, 0, forceLine.x, forceLine.y)
+		stroke(0)
+		strokeWeight(radius)
+		line(this.pos.x, this.pos.y, this.cellAttached.pos.x, this.cellAttached.pos.y)
+		strokeWeight(radius-2)
+		stroke('white')
+		line(this.pos.x, this.pos.y, this.cellAttached.pos.x, this.cellAttached.pos.y)
 		pop()
+
+		// FORCE VECTORS
+		//push()
+		//translate(this.pos.x, this.pos.y)
+		//let forceDraw = this.force.copy().mult(10)
+		//line(0, 0, forceDraw.x, forceDraw.y)
+		//pop()
+
 	}
 
 	// UPDATE
 	//
 	this.update = function() {
 		this.timer++
-		if (this.timer > reproductionTime && random() < 0.1) {
-			this.reproduce()
-		}
-		this.rotate()
-		this.findForce()
+		//if (this.energy > 2) {
+			//this.reproduce()
+			//this.energy -= 2
+		//}
+		//this.attach()
+		//this.rotate()
+		this.getForce()
 		this.applyForce()
 		this.move()
 	}
+
+	//this.attach = function() {
+		//if(!this.attachment) {
+			//if
+		//}
+	//}
 
 	this.reproduce = function() {
 		cells.push(new Cell({
@@ -168,22 +192,38 @@ function Cell(properties) {
 		this.timer = 0
 	}
 
-	this.findForce = function() {
+	this.getForceAttachment = function() {
+		let attachmentLength = 10
+		let distance = this.cellAttached.pos.copy().sub(this.pos)
+		let tension = distance.copy().sub(attachmentLength).mult(0.4)
+		//tension.mult(tension.mag())
+		return tension
+	}
+
+	this.getForce = function() {
 		this.force.x = 0
 		this.force.y = 0
 
 		let forceRepulsion = this.getGradient(0)
 		this.force.add(forceRepulsion)
 
-		let forceAttraction = this.getGradient(1).mult(-2.5)
-		this.force.add(forceAttraction)
+		if(!this.cellAttached) {
+			let forceAttraction = this.getGradient(1).mult(-2.5)
+			this.force.add(forceAttraction)
+		}
 
 		let forceFriction = this.velocity.copy().mult(-friction)
 		this.force.add(forceFriction)
+
+		this.force.add(this.cellAttachedForce)
+
+		if(!this.cellAttached) return
+		let forceAttachment = this.getForceAttachment()
+		this.force.add(forceAttachment)
+		this.cellAttached.cellAttachedForce = -forceAttachment
 	}
 
 	this.applyForce = function() {
-		//console.log(typeof this.force)
 		this.velocity.add( this.force.div(this.mass) )
 	}
 
@@ -198,20 +238,20 @@ function Cell(properties) {
 
 		// reflection
 		if(this.pos.x < 0) {
-			this.pos.x = 1
-			this.velocity.x = - this.velocity.x
+			this.pos.x = 8
+			this.velocity.x = -2 * this.velocity.x
 		}
 		if(this.pos.x > width - 1) {
-			this.pos.x = width - 2
-			this.velocity.x = - this.velocity.x
+			this.pos.x = width - 9
+			this.velocity.x = -2 * this.velocity.x
 		}
 		if(this.pos.y < 0) {
-			this.pos.y = 1
-			this.velocity.y = - this.velocity.y
+			this.pos.y = 8
+			this.velocity.y = -2 * this.velocity.y
 		}
 		if(this.pos.y > height - 1) {
-			this.pos.y = height - 2
-			this.velocity.y = - this.velocity.y
+			this.pos.y = height - 9
+			this.velocity.y = -2 * this.velocity.y
 		}
 		
 	}
@@ -221,6 +261,7 @@ function Cell(properties) {
 function Predator(properties) {
 	Cell.call(this, properties)
 	this.type = 'predator'
+	
 	this.repulsionFieldLocal = createFieldLocal(0, 50, 0.5)
 	this.attractionFieldLocal = createFieldLocal(1, 100, 0)
 }
@@ -228,10 +269,9 @@ function Predator(properties) {
 function Prey(properties) {
 	Cell.call(this, properties)
 	this.type = 'prey'
-	this.mass = 100
 
 	this.repulsionFieldLocal = createFieldLocal(0, 50, 0)
-	this.attractionFieldLocal = createFieldLocal(1, 100, 0.5)
+	this.attractionFieldLocal = createFieldLocal(1, 100, 0.1)
 
 	this.draw = function() {
 		push()
@@ -241,16 +281,13 @@ function Prey(properties) {
 		pop()
 	}
 
-	this.findForce = function() {
+	this.getForce = function() {
 		this.force.x = 0
 		this.force.y = 0
 		let forceRepulsion = this.getGradient(0)
 		let forceFriction = this.velocity.copy().mult(-friction)
 		this.force.add(forceRepulsion)
 		this.force.add(forceFriction)
-		
-		//let forceAttraction = this.getGradient(1)
-		//this.velocity.add( forceAttraction.copy().div(this.mass).mult(-1) )
 	}
 
 }
@@ -261,19 +298,25 @@ let gravityField
 function setup() {
 	createCanvas(512, 512)
 
-	for(let i = 0; i < 50; i++){
+	for(let i = 0; i < 31; i++){
 		cells.push(new Predator({
-			x: random(width),
-			y: random(height),
+			x: 30 + i * 10,
+			y: height / 2,
+			//x: random(width),
+			//y: random(height),
 		}))
 	}
+	for(let i = 0; i < 30; i++){
+		if(i % 5)
+			cells[i].cellAttached = cells[i + 1]
+	}
+
 	for(let i = 0; i < 200; i++){
 		cells.push(new Prey({
 			x: random(width),
 			y: random(height),
 		}))
 	}
-	
 }
 
 function draw() {
@@ -288,7 +331,7 @@ function draw() {
 	})
 
 	blendMode(BLEND)
-	background('white')
+	//background('white')
 	cells.forEach(cell => {
 		cell.draw()
 	})
@@ -296,9 +339,11 @@ function draw() {
 	// EATING
 	let eatingRadius = 5
 	for(let i = 0; i < cells.length; i++) {
-		for(let j = 0; j < cells.length; j++) {
+		for(let j = 1; j < i; j++) {
+			if(i == j) {
+				break
+			}
 			let cell1 = cells[i]
-			//console.log(cell1);
 			let cell2 = cells[j]
 			if (cell1.type == 'prey' &&
 				cell2.type == 'predator' &&
@@ -306,26 +351,11 @@ function draw() {
 				Math.abs(cell1.pos.y - cell2.pos.y) < eatingRadius
 			) {
 				cells.splice(i, 1)
+				cell2.feed()
 				break
 			}
 		}
 	}
-	//// random eating
-	////
-	//let eatingRadius = 5
-	//for(let i = 0; i < 100; i++) {
-		//let i1 = Math.floor(Math.random() * cells.length)
-		//let cell1 = cells[i1]
-		//let i2 = Math.floor(Math.random() * cells.length)
-		//let cell2 = cells[i2]
-		//if (cell1.type == 'prey' &&
-			//cell2.type == 'predator' &&
-			//Math.abs(cell1.pos.x - cell2.pos.x) < eatingRadius &&
-			//Math.abs(cell1.pos.y - cell2.pos.y) < eatingRadius
-		//) {
-			//cells.splice(i1, 1)
-		//}
-	//}
 
 	let fps = frameRate()
 	text("FPS: " + fps.toFixed(2), 10, height - 10)
