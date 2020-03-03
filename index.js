@@ -1,78 +1,9 @@
-// Const
-
-// Vars
-// вязкость
-let friction = 1
-
-// amount of food
-let foodAmount = 0.5
-// gravity
-let gravity = 0.5
-// charge
-let charge = 0.5
-
-// Cell props
-// - reproduction speed
-let reproductionTime = 999999999
-// - lifespan
-let lifespan = 0.5
-// - quantity of strings
-let stringsQuantity = 0.5
-// ~ ~ ~
-// - string strength
-//let stringsStrength = 0.5
-// - string length
-//let stringsLength = 0.5
-// - color
-// - possible angle of string
-// - size
-// - stress
-
-
-// Scenario:
-// Cell is changing it's form and size
-// Cell hunts for a food.
-// Cell reproduces once. Cells 
-
-// Food hunting
-// Connecting to each other
-
-function createFieldLocal(channel = 0, size = 50, strength = 0.5) {
-	let fieldLocal = createGraphics(size, size)
-	fieldLocal.noStroke()
-	fieldLocal.background('white')
-	for(let i = fieldLocal.width; i > 1; i--){
-		let color = 256 * strength * (1 - i * 2 / fieldLocal.width)
-		//color = 156 // FIXME
-		switch (channel) {
-			case 0:
-				fieldLocal.fill(color, 0, 0)
-				break;
-			case 1:
-				fieldLocal.fill(0, color, 0)
-				break;
-			case 2:
-				fieldLocal.fill(0, 0, color)
-				break;
-		}
-		fieldLocal.circle(
-			fieldLocal.width / 2,
-			fieldLocal.height / 2,
-			i * 2
-		)
-		//break // FIXME
-	}
-	return fieldLocal
-}
-
-
-
 function Cell(properties) {
 	let p = properties
 	this.pos = createVector(p.x, p.y)
 
 	this.timer = 0
-	this.mass = 5
+	this.mass = 4
 	this.velocity = createVector(random(-3, 3), random(-3, 3))
 	this.force = createVector(0, 0)
 	this.direction = random(TAU)
@@ -258,6 +189,74 @@ function Cell(properties) {
 }
 
 
+// Vars
+// вязкость
+let friction = 1
+
+// amount of food
+let foodAmount = 0.5
+// gravity
+let gravity = 0.5
+// charge
+let charge = 0.5
+
+// Cell props
+// - reproduction speed
+let reproductionTime = 999999999
+// - lifespan
+let lifespan = 0.5
+// - quantity of strings
+let stringsQuantity = 0.5
+// ~ ~ ~
+// - string strength
+//let stringsStrength = 0.5
+// - string length
+//let stringsLength = 0.5
+// - color
+// - possible angle of string
+// - size
+// - stress
+
+
+// Scenario:
+// Cell is changing it's form and size
+// Cell hunts for a food.
+// Cell reproduces once. Cells 
+
+// Food hunting
+// Connecting to each other
+
+function createFieldLocal(channel = 0, size = 50, strength = 0.5) {
+	let fieldLocal = createGraphics(size, size)
+	fieldLocal.noStroke()
+	fieldLocal.background('white')
+	for(let i = fieldLocal.width; i > 1; i--){
+		let color = 256 * strength * (1 - i * 2 / fieldLocal.width)
+		//color = 156 // FIXME
+		switch (channel) {
+			case 0:
+				fieldLocal.fill(color, 0, 0)
+				break;
+			case 1:
+				fieldLocal.fill(0, color, 0)
+				break;
+			case 2:
+				fieldLocal.fill(0, 0, color)
+				break;
+		}
+		fieldLocal.circle(
+			fieldLocal.width / 2,
+			fieldLocal.height / 2,
+			i * 2
+		)
+		//break // FIXME
+	}
+	return fieldLocal
+}
+
+
+
+
 function Predator(properties) {
 	Cell.call(this, properties)
 	this.type = 'predator'
@@ -331,7 +330,7 @@ function draw() {
 	})
 
 	blendMode(BLEND)
-	//background('white')
+	background('silver')
 	cells.forEach(cell => {
 		cell.draw()
 	})
